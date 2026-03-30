@@ -1,0 +1,11 @@
+# Fichiers compilés C#
+src/**/bin/
+src/**/obj/
+
+# Dossiers Mac/Windows
+.DS_Store
+Thumbs.db
+
+# Fichiers Terraform
+.terraform/
+*.tfvars

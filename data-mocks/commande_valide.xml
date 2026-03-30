@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Commande>
+	<Identifiant>CMD-2026-8849</Identifiant>
+	<DateCreation>2026-03-30T10:15:00</DateCreation>
+	<Source>ERP-LUMINA-LYON</Source>
+	<Client>
+		<NumeroClient>CL-9932</NumeroClient>
+		<Nom>Jean Dupont</Nom>
+		<Email>jean.dupont@email.fr</Email>
+	</Client>
+	<LignesDeCommande>
+		<Ligne>
+			<ReferenceProduit>LUM-DESK-001</ReferenceProduit>
+			<Quantite>2</Quantite>
+			<PrixUnitaire>145.50</PrixUnitaire>
+		</Ligne>
+	</LignesDeCommande>
+</Commande>

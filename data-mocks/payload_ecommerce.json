@@ -1,0 +1,17 @@
+{
+  "orderId": "WEB-994827",
+  "timestamp": "2026-03-30T14:22:10Z",
+  "channel": "E-Commerce-App",
+  "customerDetails": {
+    "customerId": "84729",
+    "fullName": "Alice Martin",
+    "contactEmail": "alice.m@email.com"
+  },
+  "items": [
+    {
+      "sku": "LUM-CEIL-005",
+      "qty": 1,
+      "unitPrice": 320.00
+    }
+  ]
+}

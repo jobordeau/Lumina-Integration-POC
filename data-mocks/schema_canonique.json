@@ -1,0 +1,18 @@
+{
+  "GlobalOrderId": "string",
+  "OrderDate": "datetime",
+  "OriginSystem": "string",
+  "Customer": {
+    "Id": "string",
+    "Name": "string",
+    "Email": "string"
+  },
+  "OrderLines": [
+    {
+      "ProductSKU": "string",
+      "Quantity": 0,
+      "Price": 0.0
+    }
+  ],
+  "TotalOrderAmount": 0.0
+}
