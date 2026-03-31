@@ -8,7 +8,7 @@ on:
       - 'src/**' 
 
 env:
-  AZURE_FUNCTIONAPP_NAME: 'fn-lumina-processor-dev-jovann'
+  AZURE_FUNCTIONAPP_NAME: 'fn-lumina-processor-dev-jobordeau'
   DOTNET_VERSION: '8.0'
 
 jobs:

@@ -75,6 +75,12 @@ resource "azurerm_linux_function_app" "fn_lumina" {
       dotnet_version = "8.0" 
     }
   }
+
+  lifecycle {
+    ignore_changes = [
+      app_settings
+    ]
+  }
 }
 
 resource "azurerm_storage_account" "adls_lumina" {
@@ -89,4 +95,13 @@ resource "azurerm_storage_account" "adls_lumina" {
 resource "azurerm_storage_data_lake_gen2_filesystem" "fs_orders" {
   name               = "gold-orders"
   storage_account_id = azurerm_storage_account.adls_lumina.id
+}
+
+resource "azurerm_api_management" "apim_lumina" {
+  name                = "apim-lumina-dev-jobordeau"
+  location            = azurerm_resource_group.rg_lumina.location
+  resource_group_name = azurerm_resource_group.rg_lumina.name
+  publisher_name      = "Lumina POC"
+  publisher_email     = "jbordeau2@myges.fr"
+  sku_name = "Consumption_0" 
 }
