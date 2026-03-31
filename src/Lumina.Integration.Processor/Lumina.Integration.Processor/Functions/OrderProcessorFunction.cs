@@ -43,6 +43,7 @@ namespace Lumina.Integration.Processor.Functions
 
                 decimal totalCalcule = quantite * prixUnitaire;
 
+
                 var order = new Order
                 {
                     OrderId = (string)commandeNode["Identifiant"],
