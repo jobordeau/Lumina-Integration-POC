@@ -1,7 +1,6 @@
 using System;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-using Azure.Messaging.ServiceBus;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Lumina.Integration.Processor.Core.Interfaces;
@@ -21,15 +20,13 @@ namespace Lumina.Integration.Processor.Functions
         }
 
         [Function(nameof(OrderProcessorFunction))]
-        public async Task Run([ServiceBusTrigger("sbt-lumina-orders", "sbs-process-order", Connection = "ServiceBusConnection")] ServiceBusReceivedMessage message)
+        public async Task Run([ServiceBusTrigger("sbt-lumina-orders", "sbs-process-order", Connection = "ServiceBusConnection")] string messageBody)
         {
-            _logger.LogInformation("Message ID: {id} reçu depuis le Service Bus.", message.MessageId);
+            _logger.LogInformation("Nouveau message reçu depuis le Service Bus.");
 
             try
             {
-                string jsonContent = message.Body.ToString();
-
-                var jsonNode = JsonNode.Parse(jsonContent);
+                var jsonNode = JsonNode.Parse(messageBody);
 
                 var commandeNode = jsonNode["Commande"];
                 var clientNode = commandeNode["Client"];
