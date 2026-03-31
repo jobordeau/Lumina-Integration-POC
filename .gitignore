@@ -1,6 +1,10 @@
 # Fichiers compilés C#
 src/**/bin/
 src/**/obj/
+published/
+
+# Dossiers temporaires Visual Studio
+.vs/
 
 # Dossiers Mac/Windows
 .DS_Store

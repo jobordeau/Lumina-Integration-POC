@@ -1,0 +1,38 @@
+name: Deploy Azure Function
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**' 
+
+env:
+  AZURE_FUNCTIONAPP_NAME: 'fn-lumina-processor-dev-jovann'
+  DOTNET_VERSION: '8.0'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout du code'
+        uses: actions/checkout@v4
+
+      - name: 'Installation de .NET'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: 'Compilation et Publication (Build)'
+        shell: bash
+        run: |
+          pushd src/Lumina.Integration.Processor/Lumina.Integration.Processor
+          dotnet publish -c Release -o published
+          popd
+
+      - name: 'Déploiement sur Azure'
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+          package: src/Lumina.Integration.Processor/Lumina.Integration.Processor/published
+          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
