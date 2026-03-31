@@ -6,7 +6,6 @@ using Lumina.Integration.Processor.Core.Services;
 using Lumina.Integration.Processor.Infrastructure.Adapters;
 
 var builder = FunctionsApplication.CreateBuilder(args);
-builder.ConfigureFunctionsWebApplication();
 
 builder.Services.AddScoped<IOrderProcessingService, OrderProcessingService>();
 builder.Services.AddScoped<IOrderRepository, DataLakeOrderRepository>();
