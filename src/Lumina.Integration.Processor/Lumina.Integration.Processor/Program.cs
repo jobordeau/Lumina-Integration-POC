@@ -1,16 +1,23 @@
 using Lumina.Integration.Processor.Core.Interfaces;
+using Lumina.Integration.Processor.Core.Models;
 using Lumina.Integration.Processor.Core.Services;
 using Lumina.Integration.Processor.Infrastructure.Adapters;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults()
-    .ConfigureServices(services =>
+    .ConfigureServices((context, services) =>
     {
-        services.AddApplicationInsightsTelemetryWorkerService();
-        services.ConfigureFunctionsApplicationInsights();
+        services.Configure<LuminaSettings>(context.Configuration.GetSection("Lumina"));
+
+        services.AddAzureClients(clientBuilder =>
+        {
+            clientBuilder.AddServiceBusClient(context.Configuration["Lumina:ServiceBusConnectionString"]);
+        });
+
         services.AddScoped<IOrderProcessingService, OrderProcessingService>();
         services.AddScoped<IOrderRepository, DataLakeOrderRepository>();
     })

@@ -1,5 +1,5 @@
 using System;
-using System.Text.Json.Nodes;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
@@ -22,35 +22,22 @@ namespace Lumina.Integration.Processor.Functions
         [Function(nameof(OrderProcessorFunction))]
         public async Task Run([ServiceBusTrigger("sbt-lumina-orders", "sbs-process-order", Connection = "ServiceBusConnection")] string messageBody)
         {
-            _logger.LogInformation("Nouveau message reçu depuis le Service Bus.");
+            _logger.LogInformation("Nouveau message reçu depuis le Service Bus. Tentative de traitement du format canonique.");
 
             try
             {
-                var jsonNode = JsonNode.Parse(messageBody);
-
-                var commandeNode = jsonNode["Commande"];
-                var clientNode = commandeNode["Client"];
-                var ligneNode = commandeNode["LignesDeCommande"]["Ligne"];
-
-                string strQuantite = ligneNode["Quantite"].ToString();
-                string strPrixUnitaire = ligneNode["PrixUnitaire"].ToString();
-
-                decimal quantite = decimal.Parse(strQuantite, System.Globalization.CultureInfo.InvariantCulture);
-                decimal prixUnitaire = decimal.Parse(strPrixUnitaire, System.Globalization.CultureInfo.InvariantCulture);
-
-                decimal totalCalcule = quantite * prixUnitaire;
-
-
-                var order = new Order
+                var order = JsonSerializer.Deserialize<Order>(messageBody, new JsonSerializerOptions
                 {
-                    OrderId = (string)commandeNode["Identifiant"],
-                    CustomerId = (string)clientNode["NumeroClient"],
-                    OrderDate = (DateTime)commandeNode["DateCreation"],
-                    TotalAmount = totalCalcule,
-                    Status = "New"
-                };
+                    PropertyNameCaseInsensitive = true
+                });
 
-                _logger.LogInformation("Traduction réussie ! Envoi de la commande {OrderId} au Core. Montant calculé : {TotalAmount}", order.OrderId, order.TotalAmount);
+                if (order == null || string.IsNullOrEmpty(order.OrderId))
+                {
+                    _logger.LogWarning("Le message reçu n'est pas au format canonique attendu. Message ignoré ou défectueux.");
+                    return;
+                }
+
+                _logger.LogInformation("Message canonique valide ! Envoi de la commande {OrderId} au Core. Montant : {TotalAmount}", order.OrderId, order.TotalAmount);
 
                 bool isValid = await _orderService.ProcessOrderAsync(order);
 
@@ -65,7 +52,7 @@ namespace Lumina.Integration.Processor.Functions
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erreur fatale lors du traitement du message.");
+                _logger.LogError(ex, "Erreur fatale lors du traitement du message. Il sera renvoyé dans le bus (puis DLQ si échec répété).");
                 throw;
             }
         }

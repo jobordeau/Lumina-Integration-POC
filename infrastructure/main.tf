@@ -73,6 +73,7 @@ resource "azurerm_linux_function_app" "fn_lumina" {
   site_config {
     application_stack {
       dotnet_version = "8.0" 
+      use_dotnet_isolated_runtime = true
     }
   }
 
@@ -104,4 +105,55 @@ resource "azurerm_api_management" "apim_lumina" {
   publisher_name      = "Lumina POC"
   publisher_email     = "jbordeau2@myges.fr"
   sku_name = "Consumption_0" 
+}
+
+resource "azurerm_api_management_api" "api_orders" {
+  name                = "lumina-orders-api"
+  resource_group_name = azurerm_resource_group.rg_lumina.name
+  api_management_name = azurerm_api_management.apim_lumina.name
+  revision            = "1"
+  display_name        = "Lumina E-Commerce API"
+  path                = "ecommerce"
+  protocols           = ["https"]
+}
+
+resource "azurerm_api_management_api_operation" "op_post_order" {
+  operation_id        = "post-ecommerce-order"
+  api_name            = azurerm_api_management_api.api_orders.name
+  api_management_name = azurerm_api_management.apim_lumina.name
+  resource_group_name = azurerm_resource_group.rg_lumina.name
+  display_name        = "Créer une commande"
+  method              = "POST"
+  url_template        = "/orders"
+  description         = "Reçoit un payload JSON e-commerce et le transforme au format canonique"
+}
+
+resource "azurerm_api_management_api_policy" "policy_orders" {
+  api_name            = azurerm_api_management_api.api_orders.name
+  api_management_name = azurerm_api_management.apim_lumina.name
+  resource_group_name = azurerm_resource_group.rg_lumina.name
+
+  xml_content = <<XML
+<policies>
+    <inbound>
+        <base />
+        <rate-limit calls="10" renewal-period="60" />
+        
+        <set-header name="X-Source-System" exists-action="override">
+            <value>APIM-LUMINA</value>
+        </set-header>
+        
+        <set-backend-service base-url="https://${azurerm_linux_function_app.fn_lumina.default_hostname}/api" />
+    </inbound>
+    <backend>
+        <forward-request timeout="20" />
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>
+XML
 }
