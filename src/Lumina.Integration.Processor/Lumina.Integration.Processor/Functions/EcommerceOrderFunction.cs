@@ -25,7 +25,7 @@ namespace Lumina.Integration.Processor.Functions
             _sender = sbClient.CreateSender(_settings.TopicName);
         }
 
-        [Function(nameof(EcommerceOrderFunction)]
+        [Function(nameof(EcommerceOrderFunction))]
         public async Task<HttpResponseData> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "orders")] HttpRequestData req)
         {
