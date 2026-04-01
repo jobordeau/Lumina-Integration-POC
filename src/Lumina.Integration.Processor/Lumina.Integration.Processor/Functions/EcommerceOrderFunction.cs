@@ -27,7 +27,7 @@ namespace Lumina.Integration.Processor.Functions
 
         [Function("EcommerceOrderFunction")]
         public async Task<HttpResponseData> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "ecommerce/orders")] HttpRequestData req)
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "orders")] HttpRequestData req)
         {
             _logger.LogInformation("Réception d'une commande E-commerce.");
 
