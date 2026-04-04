@@ -9,18 +9,17 @@ namespace Lumina.Integration.Processor.Infrastructure.Adapters
 {
     public class DataLakeOrderRepository : IOrderRepository
     {
-        private readonly string _connectionString;
+        private readonly BlobServiceClient _blobServiceClient;
         private const string ContainerName = "gold-orders";
 
-        public DataLakeOrderRepository()
+        public DataLakeOrderRepository(BlobServiceClient blobServiceClient)
         {
-            _connectionString = Environment.GetEnvironmentVariable("DataLakeConnection");
+            _blobServiceClient = blobServiceClient;
         }
 
         public async Task SaveOrderAsync(Order order)
         {
-            var blobServiceClient = new BlobServiceClient(_connectionString);
-            var containerClient = blobServiceClient.GetBlobContainerClient(ContainerName);
+            var containerClient = _blobServiceClient.GetBlobContainerClient(ContainerName);
 
             string fileName = $"{order.OrderId}.json";
             var blobClient = containerClient.GetBlobClient(fileName);
@@ -29,7 +28,7 @@ namespace Lumina.Integration.Processor.Infrastructure.Adapters
 
             await blobClient.UploadAsync(BinaryData.FromString(jsonContent), overwrite: true);
 
-            Console.WriteLine($"[Infrastructure] Le fichier {fileName} a été écrit dans le Data Lake avec succès.");
+            Console.WriteLine($"[Infrastructure] Le fichier {fileName} a été écrit dans le Data Lake en mode Passwordless !");
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using Azure.Storage.Blobs;
+using Azure.Identity; 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
@@ -31,15 +32,16 @@ namespace Lumina.Integration.Processor.Functions
                 string messageBody = message.Body.ToString();
                 string fileName = $"failed-order-{message.MessageId ?? Guid.NewGuid().ToString()}.json";
 
-                string dataLakeConnectionString = Environment.GetEnvironmentVariable("DataLakeConnection");
+                // On récupère la nouvelle variable URI
+                string dataLakeUri = Environment.GetEnvironmentVariable("Lumina:DataLakeUri");
 
-                if (string.IsNullOrEmpty(dataLakeConnectionString))
+                if (string.IsNullOrEmpty(dataLakeUri))
                 {
-                    _logger.LogError("[DLQ] La chaîne de connexion au Data Lake est introuvable.");
+                    _logger.LogError("[DLQ] L'URL du Data Lake est introuvable.");
                     return;
                 }
 
-                BlobServiceClient dataLakeClient = new BlobServiceClient(dataLakeConnectionString);
+                BlobServiceClient dataLakeClient = new BlobServiceClient(new Uri(dataLakeUri), new DefaultAzureCredential());
                 BlobContainerClient containerClient = dataLakeClient.GetBlobContainerClient("failed-orders");
 
                 await containerClient.CreateIfNotExistsAsync();
@@ -50,7 +52,7 @@ namespace Lumina.Integration.Processor.Functions
                     await blobClient.UploadAsync(stream, overwrite: true);
                 }
 
-                _logger.LogInformation($"[DLQ] Opération réussie. Message sauvegardé sous : failed-orders/{fileName}");
+                _logger.LogInformation($"[DLQ] Opération réussie en Passwordless. Message sauvegardé sous : failed-orders/{fileName}");
             }
             catch (Exception ex)
             {

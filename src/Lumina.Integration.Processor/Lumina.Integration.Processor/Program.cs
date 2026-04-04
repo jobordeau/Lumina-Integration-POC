@@ -1,3 +1,4 @@
+using Azure.Identity;
 using Lumina.Integration.Processor.Core.Interfaces;
 using Lumina.Integration.Processor.Core.Models;
 using Lumina.Integration.Processor.Core.Services;
@@ -15,8 +16,9 @@ var host = new HostBuilder()
 
         services.AddAzureClients(clientBuilder =>
         {
-            clientBuilder.AddServiceBusClient(context.Configuration["Lumina:ServiceBusConnectionString"]);
-            clientBuilder.AddBlobServiceClient(context.Configuration["AzureWebJobsStorage"]);
+            clientBuilder.UseCredential(new DefaultAzureCredential());
+            clientBuilder.AddServiceBusClientWithNamespace(context.Configuration["Lumina:ServiceBusNamespace"]);
+            clientBuilder.AddBlobServiceClient(new Uri(context.Configuration["Lumina:DataLakeUri"]));
         });
 
         services.AddScoped<IOrderProcessingService, OrderProcessingService>();

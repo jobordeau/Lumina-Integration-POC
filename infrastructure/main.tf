@@ -1,3 +1,5 @@
+data "azurerm_client_config" "current" {}
+
 resource "azurerm_resource_group" "rg_lumina" {
   name     = "rg-lumina-poc-dev"
   location = "France Central"
@@ -65,6 +67,10 @@ resource "azurerm_linux_function_app" "fn_lumina" {
   name                = "fn-lumina-processor-dev-jobordeau"
   resource_group_name = azurerm_resource_group.rg_lumina.name
   location            = azurerm_resource_group.rg_lumina.location
+
+  identity {
+    type = "SystemAssigned"
+  }
 
   storage_account_name       = azurerm_storage_account.st_fn_lumina.name
   storage_account_access_key = azurerm_storage_account.st_fn_lumina.primary_access_key
@@ -174,4 +180,39 @@ resource "azurerm_logic_app_workflow" "logicapp_lumina" {
 resource "azurerm_storage_data_lake_gen2_filesystem" "fs_failed_orders" {
   name               = "failed-orders"
   storage_account_id = azurerm_storage_account.adls_lumina.id
+}
+
+resource "azurerm_key_vault" "kv_lumina" {
+  name                        = "kv-lumina-dev-jobordeau" # Doit être unique et faire max 24 caractères
+  location                    = azurerm_resource_group.rg_lumina.location
+  resource_group_name         = azurerm_resource_group.rg_lumina.name
+  enabled_for_disk_encryption = true
+  tenant_id                   = data.azurerm_client_config.current.tenant_id
+  soft_delete_retention_days  = 7
+  purge_protection_enabled    = false
+  sku_name                    = "standard"
+
+  access_policy {
+    tenant_id = data.azurerm_client_config.current.tenant_id
+    object_id = data.azurerm_client_config.current.object_id
+    secret_permissions = ["Get", "List", "Set", "Delete", "Recover", "Backup", "Restore", "Purge"]
+  }
+
+  access_policy {
+    tenant_id = data.azurerm_client_config.current.tenant_id
+    object_id = azurerm_linux_function_app.fn_lumina.identity[0].principal_id
+    secret_permissions = ["Get", "List"]
+  }
+}
+
+resource "azurerm_role_assignment" "role_adls_function" {
+  scope                = azurerm_storage_account.adls_lumina.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = azurerm_linux_function_app.fn_lumina.identity[0].principal_id
+}
+
+resource "azurerm_role_assignment" "role_sb_function" {
+  scope                = azurerm_servicebus_namespace.sb_lumina.id
+  role_definition_name = "Azure Service Bus Data Owner"
+  principal_id         = azurerm_linux_function_app.fn_lumina.identity[0].principal_id
 }
