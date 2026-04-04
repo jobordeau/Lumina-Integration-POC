@@ -16,6 +16,7 @@ var host = new HostBuilder()
         services.AddAzureClients(clientBuilder =>
         {
             clientBuilder.AddServiceBusClient(context.Configuration["Lumina:ServiceBusConnectionString"]);
+            clientBuilder.AddBlobServiceClient(context.Configuration["AzureWebJobsStorage"]);
         });
 
         services.AddScoped<IOrderProcessingService, OrderProcessingService>();

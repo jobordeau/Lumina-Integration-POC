@@ -157,3 +157,21 @@ resource "azurerm_api_management_api_policy" "policy_orders" {
 </policies>
 XML
 }
+
+resource "azurerm_logic_app_workflow" "logicapp_lumina" {
+  name                = "la-lumina-workflow-dev-jobordeau"
+  location            = azurerm_resource_group.rg_lumina.location
+  resource_group_name = azurerm_resource_group.rg_lumina.name
+
+  lifecycle {
+    ignore_changes = [
+      parameters,
+      workflow_parameters
+    ]
+  }
+}
+
+resource "azurerm_storage_data_lake_gen2_filesystem" "fs_failed_orders" {
+  name               = "failed-orders"
+  storage_account_id = azurerm_storage_account.adls_lumina.id
+}
