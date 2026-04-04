@@ -6,17 +6,15 @@ using Azure.Storage.Blobs;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
-namespace Lumina.Functions
+namespace Lumina.Integration.Processor.Functions
 {
     public class FailedOrderFunction
     {
         private readonly ILogger<FailedOrderFunction> _logger;
-        private readonly BlobServiceClient _blobServiceClient;
 
-        public FailedOrderFunction(ILogger<FailedOrderFunction> logger, BlobServiceClient blobServiceClient)
+        public FailedOrderFunction(ILogger<FailedOrderFunction> logger)
         {
             _logger = logger;
-            _blobServiceClient = blobServiceClient;
         }
 
         [Function(nameof(FailedOrderFunction))]
@@ -31,13 +29,20 @@ namespace Lumina.Functions
             try
             {
                 string messageBody = message.Body.ToString();
-
                 string fileName = $"failed-order-{message.MessageId ?? Guid.NewGuid().ToString()}.json";
 
-                BlobContainerClient containerClient = _blobServiceClient.GetBlobContainerClient("failed-orders");
+                string dataLakeConnectionString = Environment.GetEnvironmentVariable("DataLakeConnection");
+
+                if (string.IsNullOrEmpty(dataLakeConnectionString))
+                {
+                    _logger.LogError("[DLQ] La chaîne de connexion au Data Lake est introuvable.");
+                    return;
+                }
+
+                BlobServiceClient dataLakeClient = new BlobServiceClient(dataLakeConnectionString);
+                BlobContainerClient containerClient = dataLakeClient.GetBlobContainerClient("failed-orders");
 
                 await containerClient.CreateIfNotExistsAsync();
-
                 BlobClient blobClient = containerClient.GetBlobClient(fileName);
 
                 using (var stream = new System.IO.MemoryStream(Encoding.UTF8.GetBytes(messageBody)))
@@ -50,7 +55,6 @@ namespace Lumina.Functions
             catch (Exception ex)
             {
                 _logger.LogError($"[DLQ] Échec critique lors de la sauvegarde du message : {ex.Message}");
-
                 throw;
             }
         }
