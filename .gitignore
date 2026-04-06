@@ -13,3 +13,5 @@ Thumbs.db
 # Fichiers Terraform
 .terraform/
 *.tfvars
+*.tfstate
+*.tfstate.*
