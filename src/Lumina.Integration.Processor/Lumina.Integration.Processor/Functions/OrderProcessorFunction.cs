@@ -37,6 +37,13 @@ namespace Lumina.Integration.Processor.Functions
                     return;
                 }
 
+                if (order.CustomerId == "DLQ-TEST")
+                {
+                    _logger.LogError("[Test] Déclencheur DLQ activé pour la commande {OrderId}", order.OrderId);
+                    throw new InvalidOperationException(
+                        "Test-induced failure to demonstrate the dead-letter mechanism.");
+                }
+
                 _logger.LogInformation("Message canonique valide ! Envoi de la commande {OrderId} au Core. Montant : {TotalAmount}", order.OrderId, order.TotalAmount);
 
                 bool isValid = await _orderService.ProcessOrderAsync(order);

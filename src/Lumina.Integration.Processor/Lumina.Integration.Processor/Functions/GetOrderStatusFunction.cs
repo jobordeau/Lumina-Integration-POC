@@ -1,0 +1,103 @@
+﻿using System.Net;
+using System.Text.Json;
+using Azure;
+using Azure.Storage.Blobs;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Logging;
+
+namespace Lumina.Integration.Processor.Functions
+{
+    /// <summary>
+    /// Renvoie l'état actuel d'une commande en interrogeant directement le Data Lake.
+    /// Utilisé par le portfolio site pour vérifier la persistance après un POST asynchrone.
+    /// </summary>
+    public class GetOrderStatusFunction
+    {
+        private readonly ILogger _logger;
+        private readonly BlobServiceClient _blobServiceClient;
+
+        public GetOrderStatusFunction(
+            ILoggerFactory loggerFactory,
+            BlobServiceClient blobServiceClient)
+        {
+            _logger = loggerFactory.CreateLogger<GetOrderStatusFunction>();
+            _blobServiceClient = blobServiceClient;
+        }
+
+        [Function(nameof(GetOrderStatusFunction))]
+        public async Task<HttpResponseData> Run(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get",
+                Route = "orders/{orderId}/status")] HttpRequestData req,
+            string orderId)
+        {
+            _logger.LogInformation("Lookup status · OrderId={OrderId}", orderId);
+
+            // 1) gold-orders : commande traitée avec succès ?
+            try
+            {
+                var goldContainer = _blobServiceClient.GetBlobContainerClient("gold-orders");
+                var goldBlob = goldContainer.GetBlobClient($"{orderId}.json");
+                if (await goldBlob.ExistsAsync())
+                {
+                    var content = await goldBlob.DownloadContentAsync();
+                    var bodyJson = content.Value.Content.ToString();
+                    return await JsonResponse(req, HttpStatusCode.OK, new
+                    {
+                        orderId,
+                        status = "completed",
+                        location = $"gold-orders/{orderId}.json",
+                        body = JsonDocument.Parse(bodyJson).RootElement
+                    });
+                }
+            }
+            catch (RequestFailedException ex)
+            {
+                _logger.LogWarning(ex, "Erreur lookup gold-orders");
+            }
+
+            // 2) failed-orders : commande dead-lettered ?
+            try
+            {
+                var failedContainer = _blobServiceClient.GetBlobContainerClient("failed-orders");
+                var failedBlob = failedContainer.GetBlobClient($"failed-order-{orderId}.json");
+                if (await failedBlob.ExistsAsync())
+                {
+                    var content = await failedBlob.DownloadContentAsync();
+                    var bodyJson = content.Value.Content.ToString();
+                    return await JsonResponse(req, HttpStatusCode.OK, new
+                    {
+                        orderId,
+                        status = "dead-lettered",
+                        location = $"failed-orders/failed-order-{orderId}.json",
+                        body = JsonDocument.Parse(bodyJson).RootElement
+                    });
+                }
+            }
+            catch (RequestFailedException ex)
+            {
+                _logger.LogWarning(ex, "Erreur lookup failed-orders");
+            }
+
+            // 3) Toujours en transit (Service Bus → Consumer Fn pas encore fini)
+            return await JsonResponse(req, HttpStatusCode.OK, new
+            {
+                orderId,
+                status = "pending",
+                message = "Commande non encore persistée. Probablement encore en transit dans Service Bus."
+            });
+        }
+
+        private static async Task<HttpResponseData> JsonResponse(
+            HttpRequestData req, HttpStatusCode code, object payload)
+        {
+            var response = req.CreateResponse(code);
+            response.Headers.Add("Content-Type", "application/json; charset=utf-8");
+            await response.WriteStringAsync(JsonSerializer.Serialize(payload, new JsonSerializerOptions
+            {
+                WriteIndented = false
+            }));
+            return response;
+        }
+    }
+}

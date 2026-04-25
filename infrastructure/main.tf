@@ -81,6 +81,7 @@ resource "azurerm_api_management_api" "api_orders" {
   display_name        = "Lumina E-Commerce API"
   path                = "ecommerce"
   protocols           = ["https"]
+  subscription_required = false
 }
 
 resource "azurerm_api_management_api_operation" "op_post_order" {
@@ -94,6 +95,23 @@ resource "azurerm_api_management_api_operation" "op_post_order" {
   description         = "Reçoit un payload JSON e-commerce et le transforme au format canonique"
 }
 
+resource "azurerm_api_management_api_operation" "op_get_order_status" {
+  operation_id        = "get-order-status"
+  api_name            = azurerm_api_management_api.api_orders.name
+  api_management_name = azurerm_api_management.apim_lumina.name
+  resource_group_name = azurerm_resource_group.rg_lumina.name
+  display_name        = "Récupérer le statut d'une commande"
+  method              = "GET"
+  url_template        = "/orders/{orderId}/status"
+  description         = "Retourne l'emplacement de la commande dans le Data Lake (gold-orders ou failed-orders) ou pending si encore en transit."
+
+  template_parameter {
+    name     = "orderId"
+    required = true
+    type     = "string"
+  }
+}
+
 resource "azurerm_api_management_api_policy" "policy_orders" {
   api_name            = azurerm_api_management_api.api_orders.name
   api_management_name = azurerm_api_management.apim_lumina.name
@@ -102,13 +120,27 @@ resource "azurerm_api_management_api_policy" "policy_orders" {
   xml_content = <<XML
 <policies>
     <inbound>
+        <cors allow-credentials="false">
+            <allowed-origins>
+                <origin>*</origin>
+            </allowed-origins>
+            <allowed-methods preflight-result-max-age="300">
+                <method>GET</method>
+                <method>POST</method>
+                <method>OPTIONS</method>
+            </allowed-methods>
+            <allowed-headers>
+                <header>*</header>
+            </allowed-headers>
+            <expose-headers>
+                <header>*</header>
+            </expose-headers>
+        </cors>
         <base />
-        <rate-limit calls="10" renewal-period="60" />
-        
+        <rate-limit calls="30" renewal-period="60" />
         <set-header name="X-Source-System" exists-action="override">
             <value>APIM-LUMINA</value>
         </set-header>
-        
         <set-backend-service base-url="https://${azurerm_linux_function_app.fn_lumina.default_hostname}/api" />
     </inbound>
     <backend>
