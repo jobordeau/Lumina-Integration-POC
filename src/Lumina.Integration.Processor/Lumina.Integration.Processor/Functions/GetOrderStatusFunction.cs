@@ -8,10 +8,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Lumina.Integration.Processor.Functions
 {
-    /// <summary>
-    /// Renvoie l'état actuel d'une commande en interrogeant directement le Data Lake.
-    /// Utilisé par le portfolio site pour vérifier la persistance après un POST asynchrone.
-    /// </summary>
     public class GetOrderStatusFunction
     {
         private readonly ILogger _logger;
@@ -33,7 +29,6 @@ namespace Lumina.Integration.Processor.Functions
         {
             _logger.LogInformation("Lookup status · OrderId={OrderId}", orderId);
 
-            // 1) gold-orders : commande traitée avec succès ?
             try
             {
                 var goldContainer = _blobServiceClient.GetBlobContainerClient("gold-orders");
@@ -56,7 +51,6 @@ namespace Lumina.Integration.Processor.Functions
                 _logger.LogWarning(ex, "Erreur lookup gold-orders");
             }
 
-            // 2) failed-orders : commande dead-lettered ?
             try
             {
                 var failedContainer = _blobServiceClient.GetBlobContainerClient("failed-orders");
@@ -79,7 +73,6 @@ namespace Lumina.Integration.Processor.Functions
                 _logger.LogWarning(ex, "Erreur lookup failed-orders");
             }
 
-            // 3) Toujours en transit (Service Bus → Consumer Fn pas encore fini)
             return await JsonResponse(req, HttpStatusCode.OK, new
             {
                 orderId,
