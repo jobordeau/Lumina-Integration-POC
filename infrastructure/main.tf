@@ -112,6 +112,17 @@ resource "azurerm_api_management_api_operation" "op_get_order_status" {
   }
 }
 
+resource "azurerm_api_management_api_operation" "op_health" {
+  operation_id        = "get-health"
+  api_name            = azurerm_api_management_api.api_orders.name
+  api_management_name = azurerm_api_management.apim_lumina.name
+  resource_group_name = azurerm_resource_group.rg_lumina.name
+  display_name        = "Health check"
+  method              = "GET"
+  url_template        = "/health"
+  description         = "Retourne l'état de disponibilité du backend Azure."
+}
+
 resource "azurerm_api_management_api_policy" "policy_orders" {
   api_name            = azurerm_api_management_api.api_orders.name
   api_management_name = azurerm_api_management.apim_lumina.name
@@ -137,7 +148,7 @@ resource "azurerm_api_management_api_policy" "policy_orders" {
             </expose-headers>
         </cors>
         <base />
-        <rate-limit calls="30" renewal-period="60" />
+        <rate-limit calls="60" renewal-period="60" />
         <set-header name="X-Source-System" exists-action="override">
             <value>APIM-LUMINA</value>
         </set-header>
