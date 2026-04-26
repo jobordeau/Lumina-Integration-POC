@@ -29,6 +29,8 @@ namespace Lumina.Integration.Processor.Functions
         {
             _logger.LogInformation("Lookup status · OrderId={OrderId}", orderId);
 
+            var alert = await TryReadAlertAsync(orderId);
+
             try
             {
                 var goldContainer = _blobServiceClient.GetBlobContainerClient("gold-orders");
@@ -42,7 +44,8 @@ namespace Lumina.Integration.Processor.Functions
                         orderId,
                         status = "completed",
                         location = $"gold-orders/{orderId}.json",
-                        body = JsonDocument.Parse(bodyJson).RootElement
+                        body = JsonDocument.Parse(bodyJson).RootElement,
+                        alert
                     });
                 }
             }
@@ -64,7 +67,8 @@ namespace Lumina.Integration.Processor.Functions
                         orderId,
                         status = "dead-lettered",
                         location = $"failed-orders/failed-order-{orderId}.json",
-                        body = JsonDocument.Parse(bodyJson).RootElement
+                        body = JsonDocument.Parse(bodyJson).RootElement,
+                        alert
                     });
                 }
             }
@@ -77,8 +81,35 @@ namespace Lumina.Integration.Processor.Functions
             {
                 orderId,
                 status = "pending",
-                message = "Commande non encore persistée. Probablement encore en transit dans Service Bus."
+                message = "Commande non encore persistée. Probablement encore en transit dans Service Bus.",
+                alert
             });
+        }
+
+        private async Task<object?> TryReadAlertAsync(string orderId)
+        {
+            try
+            {
+                var alertsContainer = _blobServiceClient.GetBlobContainerClient("alerts-sent");
+                var alertBlob = alertsContainer.GetBlobClient($"{orderId}.json");
+                if (await alertBlob.ExistsAsync())
+                {
+                    var content = await alertBlob.DownloadContentAsync();
+                    var alertJson = content.Value.Content.ToString();
+                    return new
+                    {
+                        sent = true,
+                        location = $"alerts-sent/{orderId}.json",
+                        details = JsonDocument.Parse(alertJson).RootElement
+                    };
+                }
+            }
+            catch (RequestFailedException ex)
+            {
+                _logger.LogWarning(ex, "Erreur lookup alerts-sent · {OrderId}", orderId);
+            }
+
+            return new { sent = false };
         }
 
         private static async Task<HttpResponseData> JsonResponse(

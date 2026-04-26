@@ -285,6 +285,11 @@ resource "azurerm_storage_data_lake_gen2_filesystem" "fs_analytics" {
   storage_account_id = azurerm_storage_account.adls_lumina.id
 }
 
+resource "azurerm_storage_data_lake_gen2_filesystem" "fs_alerts_sent" {
+  name               = "alerts-sent"
+  storage_account_id = azurerm_storage_account.adls_lumina.id
+}
+
 # ==============================================================================
 # 7. DATAFACTORY
 # ==============================================================================
