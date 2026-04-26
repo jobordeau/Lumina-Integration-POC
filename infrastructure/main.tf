@@ -123,6 +123,17 @@ resource "azurerm_api_management_api_operation" "op_health" {
   description         = "Retourne l'état de disponibilité du backend Azure."
 }
 
+resource "azurerm_api_management_api_operation" "op_get_analytics_summary" {
+  operation_id        = "get-analytics-summary"
+  api_name            = azurerm_api_management_api.api_orders.name
+  api_management_name = azurerm_api_management.apim_lumina.name
+  resource_group_name = azurerm_resource_group.rg_lumina.name
+  display_name        = "Récupérer le résumé analytique"
+  method              = "GET"
+  url_template        = "/analytics/summary"
+  description         = "Retourne les KPIs métiers calculés par le notebook Fabric."
+}
+
 resource "azurerm_api_management_api_policy" "policy_orders" {
   api_name            = azurerm_api_management_api.api_orders.name
   api_management_name = azurerm_api_management.apim_lumina.name
@@ -287,6 +298,11 @@ resource "azurerm_storage_data_lake_gen2_filesystem" "fs_analytics" {
 
 resource "azurerm_storage_data_lake_gen2_filesystem" "fs_alerts_sent" {
   name               = "alerts-sent"
+  storage_account_id = azurerm_storage_account.adls_lumina.id
+}
+
+resource "azurerm_storage_data_lake_gen2_filesystem" "fs_analytics_summary" {
+  name               = "analytics-summary"
   storage_account_id = azurerm_storage_account.adls_lumina.id
 }
 
